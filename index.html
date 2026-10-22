@@ -8,29 +8,29 @@
 <meta name="apple-mobile-web-app-title" content="MC Food Diary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Figtree:wght@400;500;600;700&display=swap">
-<script src="vendor/supabase.js?v=20261020155547"></script>
-<script src="recetas/base.js?v=20261020155547"></script>
-<script src="recetas/es.js?v=20261020155547"></script>
-<script src="recetas/it.js?v=20261020155547"></script>
-<script src="recetas/gr.js?v=20261020155547"></script>
-<script src="recetas/fr.js?v=20261020155547"></script>
-<script src="recetas/pt.js?v=20261020155547"></script>
-<script src="recetas/mx.js?v=20261020155547"></script>
-<script src="recetas/pe.js?v=20261020155547"></script>
-<script src="recetas/ar.js?v=20261020155547"></script>
-<script src="recetas/co.js?v=20261020155547"></script>
-<script src="recetas/cn.js?v=20261020155547"></script>
-<script src="recetas/jp.js?v=20261020155547"></script>
-<script src="recetas/th.js?v=20261020155547"></script>
-<script src="recetas/in.js?v=20261020155547"></script>
-<script src="recetas/kr.js?v=20261020155547"></script>
-<script src="recetas/vn.js?v=20261020155547"></script>
-<script src="recetas/ma.js?v=20261020155547"></script>
-<script src="recetas/lb.js?v=20261020155547"></script>
-<script src="recetas/tr.js?v=20261020155547"></script>
-<script src="recetas/us.js?v=20261020155547"></script>
-<script src="recetas/gb.js?v=20261020155547"></script>
-<script src="recetas/de.js?v=20261020155547"></script>
+<script src="vendor/supabase.js?v=20261022143757"></script>
+<script src="recetas/base.js?v=20261022143757"></script>
+<script src="recetas/es.js?v=20261022143757"></script>
+<script src="recetas/it.js?v=20261022143757"></script>
+<script src="recetas/gr.js?v=20261022143757"></script>
+<script src="recetas/fr.js?v=20261022143757"></script>
+<script src="recetas/pt.js?v=20261022143757"></script>
+<script src="recetas/mx.js?v=20261022143757"></script>
+<script src="recetas/pe.js?v=20261022143757"></script>
+<script src="recetas/ar.js?v=20261022143757"></script>
+<script src="recetas/co.js?v=20261022143757"></script>
+<script src="recetas/cn.js?v=20261022143757"></script>
+<script src="recetas/jp.js?v=20261022143757"></script>
+<script src="recetas/th.js?v=20261022143757"></script>
+<script src="recetas/in.js?v=20261022143757"></script>
+<script src="recetas/kr.js?v=20261022143757"></script>
+<script src="recetas/vn.js?v=20261022143757"></script>
+<script src="recetas/ma.js?v=20261022143757"></script>
+<script src="recetas/lb.js?v=20261022143757"></script>
+<script src="recetas/tr.js?v=20261022143757"></script>
+<script src="recetas/us.js?v=20261022143757"></script>
+<script src="recetas/gb.js?v=20261022143757"></script>
+<script src="recetas/de.js?v=20261022143757"></script>
 <style>
 /* Layout: app de una columna (máx. 560px), cabecera arriba y barra de pestañas fija abajo, como una app de iPhone. */
 :root{
@@ -268,7 +268,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const eur=n=>n.toLocaleString('es-ES',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2});
 const uid=()=>Math.random().toString(36).slice(2,10);
-function toast(msg){const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+function toast(msg,ms){const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||2600)}
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function monday(d){const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
@@ -287,6 +287,10 @@ function cost(key,q){const [, , p,u]=ING[key];return u==='ud'?p*q:p*q/1000}
 function recipeCost(r,rac){const f=rac/BASE;return r.ing.reduce((s,[k,q])=>s+cost(k,q*f),0)}
 
 /* ---------- Estado por usuario ---------- */
+// Una sola vez, al pasar al proyecto compartido: los datos de las cuentas anteriores quedan aparte
+// hasta que su dueño entre con la cuenta nueva (ver onSession).
+try{if(!localStorage.getItem('mcfd.migrated.v3')){for(const k of Object.keys(localStorage))if(k.startsWith('mcfd.u.')){localStorage.setItem('mcfd.prev.'+k.slice(7),localStorage.getItem(k));localStorage.removeItem(k)}
+  localStorage.removeItem('mcfd.auth');localStorage.setItem('mcfd.migrated.v3','1')}}catch(e){}
 let KEY='mcfd.local';
 const S={};
 function fresh(){return {perfil:null,semanas:{},compra:{},favs:[],tema:null,upd:0}}
@@ -636,10 +640,14 @@ async function shareList(){
 }
 
 /* ---------- Cuentas (Supabase) ---------- */
-// Datos públicos del proyecto de Supabase de MC Food Diary (Project URL y Publishable key). Vacíos = modo local sin cuentas.
-const MC_CONFIG={url:'https://algqgkrgnvpbiksayggx.supabase.co',key:'sb_publishable__jBl0tGIY1p7uNGCkDNQMg_REuXabXx'};
-const sb=(window.supabase&&MC_CONFIG.url&&MC_CONFIG.key)?window.supabase.createClient(MC_CONFIG.url,MC_CONFIG.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'mcfd.auth'}}):null;
-const A={status:'loading',user:null,profile:null,mode:'login',email:'',resendAt:0};
+// Datos públicos del proyecto compartido de Supabase (el de Forja). Las tablas de MC Food Diary están en el apartado "mcfd".
+// Vacíos = modo local sin cuentas.
+const MC_CONFIG={url:'https://qxapuoemkpwizleenbar.supabase.co',key:'sb_publishable_Ub9czsb2WtuZoyshIi5_jg_Xec33JOo'};
+const APP_ID='mcfd';
+const sb=(window.supabase&&MC_CONFIG.url&&MC_CONFIG.key)?window.supabase.createClient(MC_CONFIG.url,MC_CONFIG.key,{db:{schema:'mcfd'},auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'mcfd.auth2'}}):null;
+const shared=()=>sb.schema('public'); // funciones comunes a todas las apps del proyecto
+const otp=email=>sb.auth.signInWithOtp({email,options:{shouldCreateUser:true,data:{app:APP_ID}}});
+const A={status:'loading',user:null,profile:null,mode:'login',email:'',resendAt:0,other:false};
 const canSync=()=>!!(sb&&A.user);
 function errMsg(e){const m=String(e?.message||e||'');
   if(/Invalid login credentials/i.test(m))return 'Correo o contraseña incorrectos. Si no recuerdas la contraseña, pulsa “Crear cuenta o he olvidado mi contraseña”.';
@@ -669,7 +677,11 @@ function authView(){
   if(A.mode==='verify')return `<div class="auth"><form class="stack" data-f="auth-verify">${head}<p class="muted">Escribe el código que hemos enviado a <b>${esc(A.email)}</b>. Mira también en spam.</p>
     <label class="field">Código<input class="input num" name="token" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required style="font-size:24px;letter-spacing:.3em;text-align:center"></label>
     <p class="err"></p><button class="btn primary block">Comprobar</button><button type="button" class="link" data-a="auth-resend">Enviar otro código</button><button type="button" class="link" data-a="auth-login">Volver</button></form></div>`;
-  if(A.mode==='pass')return `<div class="auth"><form class="stack" data-f="auth-pass">${head}<p class="muted">Elige una contraseña para entrar la próxima vez.</p>
+  if(A.mode==='other')return `<div class="auth"><div class="stack">${head}<p><b>Este correo ya está registrado en otra de nuestras apps.</b></p>
+    <p class="muted">Entra con el mismo correo y la contraseña que usaste allí. Si no la recuerdas, te enviamos un código para elegir una nueva: servirá para las dos apps.</p>
+    <button type="button" class="btn primary block" data-a="auth-login">Entrar con mi contraseña</button>
+    <button type="button" class="link" data-a="auth-forgot">He olvidado mi contraseña</button></div></div>`;
+  if(A.mode==='pass')return `<div class="auth"><form class="stack" data-f="auth-pass">${head}<p class="muted">Elige una contraseña para entrar la próxima vez.${A.other?' También la usarás en la otra app en la que tienes cuenta.':''}</p>
     <label class="field">Contraseña nueva (mínimo 8 caracteres)<input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
     <p class="err"></p><button class="btn primary block">Guardar y entrar</button></form></div>`;
   return '';
@@ -677,23 +689,33 @@ function authView(){
 async function authClick(a){
   if(a==='auth-code'){A.mode='code';render()}
   if(a==='auth-login'){A.mode='login';render()}
+  if(a==='auth-forgot'){const {error}=await otp(A.email);if(error)return toast(errMsg(error));A.other=true;A.resendAt=Date.now()+60000;A.mode='verify';render()}
   if(a==='auth-resend'){if(Date.now()<A.resendAt)return toast('Espera un minuto antes de pedir otro código');
-    const {error}=await sb.auth.signInWithOtp({email:A.email,options:{shouldCreateUser:true}});if(error)return toast(errMsg(error));A.resendAt=Date.now()+60000;toast('Te hemos enviado otro código')}
+    const {error}=await otp(A.email);if(error)return toast(errMsg(error));A.resendAt=Date.now()+60000;toast('Te hemos enviado otro código')}
 }
 async function authSubmit(f){
   const fd=Object.fromEntries(new FormData(f));setErr(f,'');busy(f,true);
   try{
     if(f.dataset.f==='auth-login'){A.email=fd.email.trim().toLowerCase();const {data,error}=await sb.auth.signInWithPassword({email:A.email,password:fd.password});if(error)throw error;await onSession(data.session)}
-    if(f.dataset.f==='auth-code'){A.email=fd.email.trim().toLowerCase();const {error}=await sb.auth.signInWithOtp({email:A.email,options:{shouldCreateUser:true}});if(error)throw error;A.resendAt=Date.now()+60000;A.mode='verify';render();return}
+    if(f.dataset.f==='auth-code'){A.email=fd.email.trim().toLowerCase();
+      // ¿Ya tiene cuenta en otra de nuestras apps? Entonces entra con esa contraseña
+      const {data:st}=await shared().rpc('account_status',{p_email:A.email,p_app:APP_ID});
+      if(st==='other'){A.mode='other';render();return}
+      const {error}=await otp(A.email);if(error)throw error;A.other=false;A.resendAt=Date.now()+60000;A.mode='verify';render();return}
     if(f.dataset.f==='auth-verify'){const {data,error}=await sb.auth.verifyOtp({email:A.email,token:fd.token.trim(),type:'email'});if(error)throw error;A.mode='pass';A.pending=data.session;render();return}
-    if(f.dataset.f==='auth-pass'){const {error}=await sb.auth.updateUser({password:fd.password});if(error)throw error;const s=A.pending;A.pending=null;await onSession(s||(await sb.auth.getSession()).data.session);toast('Contraseña guardada')}
+    if(f.dataset.f==='auth-pass'){const {error}=await sb.auth.updateUser({password:fd.password});if(error)throw error;const s=A.pending;A.pending=null;A.mode='login';await onSession(s||(await sb.auth.getSession()).data.session);toast('Contraseña guardada')}
   }catch(e){setErr(f,errMsg(e));busy(f,false)}
 }
 async function onSession(session){
   if(!session){A.user=null;A.status='auth';A.mode=A.mode==='pass'?'login':A.mode;useKey('mcfd.local');render();return}
   if(A.mode==='pass')return; // primero tiene que elegir contraseña
   A.user=session.user;useKey('mcfd.u.'+A.user.id);
-  try{const {data}=await sb.from('profiles').select('*').eq('id',A.user.id).maybeSingle();A.profile=data;
+  try{let {data}=await sb.from('profiles').select('*').eq('id',A.user.id).maybeSingle();
+    if(!data){ // tiene cuenta en otra de nuestras apps: se da de alta también en esta
+      const {data:j,error}=await shared().rpc('join_app',{p_app:APP_ID});if(error)throw error;
+      if(j?.joined&&j.others?.length)toast(`Ya tenías cuenta en ${j.others.join(' y ')}. Te hemos dado acceso también a MC Food Diary.`,6000);
+      ({data}=await sb.from('profiles').select('*').eq('id',A.user.id).maybeSingle())}
+    A.profile=data;
     const {data:st}=await sb.from('user_state').select('data,updated_at').eq('user_id',A.user.id).maybeSingle();
     if(st?.data&&(st.data.upd||0)>(S.upd||0)){for(const x of Object.keys(S))delete S[x];Object.assign(S,fresh(),st.data);localStorage.setItem(KEY,JSON.stringify(S));applyTheme()}
     sb.from('profiles').update({last_seen:new Date().toISOString()}).eq('id',A.user.id).then(()=>{});
@@ -701,6 +723,10 @@ async function onSession(session){
   // Primera vez con cuenta: se lleva a la cuenta lo que se usó antes sin cuenta en este dispositivo
   if(!S.perfil){try{const local=JSON.parse(localStorage.getItem('mcfd.local')||'null');
     if(local?.perfil){Object.assign(S,local);localStorage.removeItem('mcfd.local');save();applyTheme()}}catch(e){}}
+  // Mudanza al proyecto compartido: la cuenta nueva recoge lo que había en este dispositivo con la cuenta anterior
+  if(!S.upd){const prev=Object.keys(localStorage).filter(k=>k.startsWith('mcfd.prev.'));
+    if(prev.length===1){try{const old=JSON.parse(localStorage.getItem(prev[0])||'null');
+      if(old?.upd){Object.assign(S,old);localStorage.setItem('mcfd.moved.'+prev[0].slice(10),localStorage.getItem(prev[0]));localStorage.removeItem(prev[0]);save();applyTheme()}}catch(e){}}}
   A.status='ready';render();loadSocial();
 }
 async function push(){if(!canSync())return;const {error}=await sb.from('user_state').upsert({user_id:A.user.id,data:S,updated_at:new Date().toISOString()});if(error)console.warn('sync',error.message)}

@@ -1,4 +1,4 @@
-const VERSION='mcfd-20261020155547';
+const VERSION='mcfd-20261022143757';
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(VERSION).then(c=>c.addAll(['./','index.html','manifest.webmanifest','icons/apple-touch-icon.png','icons/icon-192.png','icons/icon-512.png'])).then(()=>self.skipWaiting()));
 });
